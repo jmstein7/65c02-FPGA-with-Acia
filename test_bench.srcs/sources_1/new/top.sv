@@ -34,6 +34,9 @@ module top(
     output logic nmib,
     output logic irqb,   
     output logic resb, 
+    //mode_2
+    //inout logic [7:0] data,
+    //output logic acia_e,
     
     //sram IO
     inout wire [7:0] dio_a,
@@ -73,11 +76,15 @@ module top(
   assign bank_enable = (~phi2) ? 1'b1 : 1'b0; 
   assign db_enable = (~phi2) ? 1'b0 : 1'b1; 
   assign mrw_enable = (phi2) ? 1'b1 : 1'b0;
+  assign data_rw = (rwb) ? 1'b1 : 1'b0;
   
   assign address = ab;
   assign rom_enable = (address >= 16'hC000) ? 1'b1 : 1'b0;
   assign ram_enable = (address < 16'h8000) ? 1'b1 : 1'b0;
-  assign acia_enable = (address >= 16'h8000 || address < 16'h8010) ? 1'b1 : 1'b0;
+  assign acia_enable = (address >= 16'h8000 && address < 16'h8010) ? 1'b1 : 1'b0;
+  
+  //mode_2
+  //assign acia_e = ~acia_enable;
   
   //mrd and mrw signals
   assign mwr_n = (mrw_enable && ~rwb) ? 1'b0 : 1'b1; 
@@ -109,12 +116,18 @@ end
   assign ram_in = (ram_enable && ~rwb) ? data_w : 'bZ; 
   assign acia_in = (acia_enable && ~rwb) ? data_w : 'bZ; 
   
+  /*
+  //mode_2
+  assign data = (data_rw) ? 'bZ : acia_in; 
+  assign acia_out = (data_rw) ? data : 'bZ;
+  */
+  
   ACIA acia_a(
     .RESET(resb),
     .PHI2(phi2),
-    .CS(~acia_enable),
+    .CS(acia_e),
     .RWN(rwb),
-    .RS(address[1:0]),
+    .RS(address),
     .DATAIN(acia_in),
     .DATAOUT(acia_out),
     .XTLI(acia_clk),
@@ -123,7 +136,7 @@ end
     .DTRB(),
     .RXD(rx),
     .TXD(tx),
-    .IRQn(acia_irq)
+    .IRQn(1'b1)
    );
 
 sram_ctrl5 ram_0(
@@ -159,21 +172,20 @@ clk_wiz_0 clock_a(
  );
 
 //fixed   
-   
    /* 
 vio_0 debug_core(
     .clk(clk),
     .probe_in0(ab),
     .probe_in1(db),
     .probe_in2(rwb),
-    .probe_in3(e_bit),
+    .probe_in3(acia_e),
     .probe_in4(vda),
     .probe_in5(vpa),
     .probe_in6(reset),
     .probe_in7(bank),
     .probe_in8(data_w),
-    .probe_out0(),
-    .probe_out1(phi2)
+    .probe_in9(data),
+    .probe_out0(phi2)
     );
     */
     
